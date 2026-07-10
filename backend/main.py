@@ -34,10 +34,10 @@ async def send_discord_error(api_name: str, error_message: str):
     
     payload = {
         "embeds": [{
-            "title": f"🚨 백엔드 에러 발생 ({api_name})",
+            "title": f"🚨[Error] ({api_name})",
             "description": f"**상세 에러 내용:**\n```{error_message}```",
             "color": 15158332,
-            "footer": {"text": "LogiNews 실시간 시스템 모니터링"}
+            "footer": {"text": "LogiNews Error Monitoring"}
         }]
     }
     
@@ -45,7 +45,7 @@ async def send_discord_error(api_name: str, error_message: str):
         try:
             await client_http.post(webhook_url, json=payload)
         except Exception as e:
-            print(f"❌ 디스코드 웹후크 발송 실패: {e}")
+            print(f"❌ [Error] 디스코드 웹후크 발송 실패: {e}")
 
 @app.get("/")
 async def root():
