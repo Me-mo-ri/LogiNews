@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from typing import List, Dict
 from dotenv import load_dotenv
 
-# 환경 변수 로드
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 MODEL_NAME = "gemini-3.5-flash"
@@ -27,11 +26,31 @@ class DebateState(BaseModel):
     issue: str
     history: List[Dict[str, str]]
 
+async def send_discord_error(api_name: str, error_message: str):
+    webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+    if not webhook_url:
+        print("⚠️ [Discord] DISCORD_WEBHOOK_URL 환경변수가 세팅되지 않아 알림을 건너뜁니다.")
+        return
+    
+    payload = {
+        "embeds": [{
+            "title": f"🚨 백엔드 에러 발생 ({api_name})",
+            "description": f"**상세 에러 내용:**\n```{error_message}```",
+            "color": 15158332,
+            "footer": {"text": "LogiNews 실시간 시스템 모니터링"}
+        }]
+    }
+    
+    async with httpx.AsyncClient() as client_http:
+        try:
+            await client_http.post(webhook_url, json=payload)
+        except Exception as e:
+            print(f"❌ 디스코드 웹후크 발송 실패: {e}")
+
 @app.get("/")
 async def root():
     return {"message": "LogiNews API is running"}
 
-# 뉴스 검색 API
 @app.get("/api/search-news")
 async def search_news(query: str = "속보"):
     headers = {
@@ -39,16 +58,23 @@ async def search_news(query: str = "속보"):
         "X-Naver-Client-Secret": os.getenv("NAVER_CLIENT_SECRET")
     }
     async with httpx.AsyncClient() as client_http:
-        res = await client_http.get(
-            "https://openapi.naver.com/v1/search/news.json",
-            params={"query": query, "display": 9, "sort": "sim"},
-            headers=headers,
-        )
-        if res.status_code != 200:
-            raise HTTPException(status_code=res.status_code, detail="Naver API Error")
-        return res.json()
+        try:
+            res = await client_http.get(
+                "https://openapi.naver.com/v1/search/news.json",
+                params={"query": query, "display": 9, "sort": "sim"},
+                headers=headers,
+            )
+            if res.status_code != 200:
+                error_info = f"Status Code: {res.status_code}\nResponse: {res.text}"
+                await send_discord_error("네이버 뉴스 검색 API", error_info)
+                raise HTTPException(status_code=res.status_code, detail="Naver API Error")
+            return res.json()
+        except Exception as e:
+            if not isinstance(e, HTTPException):
+                await send_discord_error("네이버 뉴스 검색 API (네트워크/코드)", str(e))
+                raise HTTPException(status_code=500, detail=str(e))
+            raise e
 
-# 뉴스 분석 API
 @app.post("/api/analyze-news")
 async def analyze(request: Dict):
     prompt = f"뉴스 내용: {request['content']}\n핵심 쟁점 1개를 추출해줘. JSON: {{'issue1': '...'}}"
@@ -60,10 +86,12 @@ async def analyze(request: Dict):
         )
         return json.loads(res.text)
     except Exception as e:
-        print(f"Gemini API Error (analyze-news): {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Gemini API Error: {str(e)}")
+        error_msg = str(e)
+        print(f"Gemini API Error (analyze-news): {error_msg}")
 
-# 토론 단계 API
+        await send_discord_error("뉴스 분석 API (Gemini)", error_msg)
+        raise HTTPException(status_code=500, detail=f"Gemini API Error: {error_msg}")
+
 @app.post("/api/debate-step")
 async def debate_step(state: DebateState):
     prompts = {"입론": "반박", "반론": "공격", "재반론": "방어", "최종결론": "정리"}
@@ -91,18 +119,18 @@ async def debate_step(state: DebateState):
         )
 
     try:
-        # 4. 시스템 지침 + 과거 기록으로 채팅 세션 생성
         chat = client.chats.create(
             model=MODEL_NAME,
             config=types.GenerateContentConfig(system_instruction=system_instruction),
             history=formatted_history,
         )
 
-        # 5. 순수한 유저 메시지만 전송
         res = chat.send_message(last_user_message)
         return {"reply": res.text}
 
     except Exception as e:
-        # 상세 에러 로그 출력 (터미널에서 확인 가능)
-        print(f"Gemini API Error (debate-step): {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Gemini API Error: {str(e)}")
+        error_msg = str(e)
+        print(f"Gemini API Error (debate-step): {error_msg}")
+        
+        await send_discord_error("토론 단계 API (Gemini)", error_msg)
+        raise HTTPException(status_code=500, detail=f"Gemini API Error: {error_msg}")
