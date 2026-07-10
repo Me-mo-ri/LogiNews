@@ -2,3 +2,4 @@
 uvicorn
 httpx
 google-genai
+python-dotenv
