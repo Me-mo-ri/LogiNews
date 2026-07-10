@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 # 환경 변수 로드
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-MODEL_NAME = "gemini-flash-latest"
+MODEL_NAME = "gemini-3.5-flash"
 
 app = FastAPI()
 
