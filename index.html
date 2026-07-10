@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ko" class="overflow-y-scroll">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>LogiNews | 로지뉴스</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paper: '#F8F5EC',
+                        surface: '#FDFBF5',
+                        panel: '#EFE7D3',
+                        ink: '#2A241C',
+                        'ink-soft': '#8F836C',
+                        wine: '#7A2B2B',
+                        'wine-dark': '#4E1C1C',
+                        line: '#E1D5B6',
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif KR"', 'serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        sans: ['Pretendard', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #F8F5EC;
+            color: #2A241C;
+            -webkit-font-smoothing: antialiased;
+            background-image:
+                radial-gradient(circle at 15% 0%, rgba(122,43,43,0.04), transparent 45%),
+                radial-gradient(circle at 100% 100%, rgba(122,43,43,0.03), transparent 40%),
+                repeating-linear-gradient(0deg, rgba(42,36,28,0.015) 0px, rgba(42,36,28,0.015) 1px, transparent 1px, transparent 3px);
+        }
+        .masthead-rule {
+            border-top: 3px solid #2A241C;
+            border-bottom: 1px solid #2A241C;
+            height: 5px;
+        }
+        .article-card {
+            background: #FDFBF5;
+            border: 1px solid #E1D5B6;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+        .article-card::-webkit-scrollbar {
+            display: none;
+        }
+        .article-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: #7A2B2B;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        .article-card:hover {
+            border-color: #7A2B2B;
+            transform: translateY(-3px);
+            box-shadow: 0 14px 28px rgba(42,36,28,0.08);
+        }
+        .article-card:hover::before { transform: scaleX(1); }
+
+        .search-bar {
+            background: #FDFBF5;
+            border: 1.5px solid #E1D5B6;
+            transition: all 0.2s;
+        }
+        .search-bar:focus-within {
+            border-color: #7A2B2B;
+            box-shadow: 0 0 0 3px rgba(122,43,43,0.08);
+        }
+        .chat-scroll::-webkit-scrollbar, .history-scroll::-webkit-scrollbar { width: 5px; }
+        .chat-scroll::-webkit-scrollbar-thumb, .history-scroll::-webkit-scrollbar-thumb { background: #E1D5B6; border-radius: 10px; }
+
+        .stage-track {
+            display: flex; align-items: center; gap: 0;
+        }
+        .stage-dot {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+        }
+        .stamp {
+            border: 2px double #7A2B2B;
+            color: #7A2B2B;
+            font-family: 'JetBrains Mono', monospace;
+            transform: rotate(-2deg);
+        }
+        .kicker {
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.12em;
+        }
+        .status-dot {
+            width: 7px; height: 7px; border-radius: 999px;
+            background: #7A2B2B;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .status-dot { animation: none; }
+            .article-card, .article-card::before { transition: none; }
+        }
+        .skeleton-block {
+            background: linear-gradient(90deg, #EFE7D3 25%, #F8F5EC 37%, #EFE7D3 63%);
+            background-size: 400% 100%;
+            animation: shimmer 1.6s ease-in-out infinite;
+            border-radius: 10px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .skeleton-block { animation: none; }
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(36px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-up-intro {
+            opacity: 0;
+            animation: slideUpFade 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .slide-up-item {
+            opacity: 0;
+            animation: slideUpFade 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .slide-up-intro, .slide-up-item { animation: none; opacity: 1; }
+        }
+
+        #read-modal-body::-webkit-scrollbar { width: 5px; }
+        #read-modal-body::-webkit-scrollbar-thumb { background: #E1D5B6; border-radius: 10px; }
+
+        .right-slide-menu {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100%;
+            background: #FDFBF5;
+            border-left: 2px solid #2A241C;
+            box-shadow: -4px 0 24px rgba(42,36,28,0.15);
+            z-index: 100;
+            transition: right 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .right-slide-menu.open {
+            right: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="slide-sidebar" class="right-slide-menu p-8 flex flex-col justify-between">
+        <div>
+            <div class="flex justify-between items-center mb-8 pb-4 border-b border-line">
+                <div class="text-lg font-serif font-black text-ink">LOGI<span class="text-wine">MENU</span></div>
+                <button onclick="toggleSlideMenu()" class="text-xl text-ink-soft hover:text-wine font-bold transition">✕</button>
+            </div>
+            <nav class="flex flex-col gap-5">
+                <a href="index.html" class="py-2 font-bold font-serif text-ink hover:text-wine text-lg transition block">🏠 | Main</a>
+                <a href="history.html" class="py-2 font-bold font-serif text-ink hover:text-wine text-lg transition block">🕰️ | History</a>
+                <a href="account.html" class="py-2 font-bold font-serif text-ink hover:text-wine text-lg transition block">👤 | Account</a>
+            </nav>
+        </div>
+        <div class="text-[11px] font-mono text-ink-soft/60">
+            &copy; 2026 LogiNews. All rights reserved.
+        </div>
+    </div>
+
+    <nav class="border-b-2 border-ink py-5 px-6 md:px-10 flex justify-between items-center bg-paper/95 backdrop-blur-md sticky top-0 z-50">
+        <div class="flex items-center gap-6">
+            <a href="/" class="flex items-baseline gap-3 cursor-pointer group">
+                <div class="text-3xl font-black tracking-tight text-ink font-serif">LOGI<span class="text-wine">NEWS</span></div>
+            </a>
+        </div>
+        <div class="flex items-center gap-5">
+            <button onclick="openAuthModal()" class="hidden sm:inline text-xs font-bold kicker border border-line px-3 py-1.5 rounded-md text-ink hover:border-wine hover:text-wine transition">Login / Sign Up</button>
+            <div class="flex items-center gap-2">
+                <span class="status-dot"></span>
+                <span id="status" class="text-[11px] kicker font-semibold uppercase tracking-widest text-ink-soft">System Ready</span>
+            </div>
+            <button onclick="toggleSlideMenu()" class="text-2xl font-serif leading-none tracking-widest text-ink hover:text-wine transition focus:outline-none select-none px-2 py-1">···</button>
+        </div>
+    </nav>
+    <div class="masthead-rule"></div>
+
+    <main class="max-w-[92rem] mx-auto p-6 md:p-10">
+        <div id="step-1" class="space-y-10">
+            <div class="slide-up-intro text-center space-y-5 pt-8">
+                <p class="kicker text-xs uppercase tracking-[0.2em] text-wine font-semibold">Today's Briefing</p>
+                <h2 class="text-4xl md:text-5xl font-serif font-bold text-ink tracking-tight">오늘의 쟁점을 발견하세요.</h2>
+                <p class="text-ink-soft text-sm">기사를 고르면, 단계를 거치며 당신만의 단단한 주장을 완성해 드립니다.</p>
+                <div class="search-bar max-w-2xl mx-auto flex items-center rounded-full px-3 py-2 mt-8">
+                    <input id="news-search" type="text" onkeyup="if(event.keyCode===13){fetchNews()}" class="w-full py-3 px-4 outline-none text-lg bg-transparent text-ink placeholder:text-ink-soft/60" placeholder="검색어를 입력하세요...">
+                    <button onclick="fetchNews()" class="bg-wine text-surface px-8 py-3 rounded-full font-bold hover:bg-wine-dark transition shrink-0">검색</button>
+                </div>
+            </div>
+            <div id="news-results" class="grid grid-cols-1 md:grid-cols-3 gap-8 pt-6"></div>
+        </div>
+
+        <div id="step-2" class="hidden flex flex-col items-center justify-center py-24 space-y-8">
+            <p class="kicker text-xs uppercase tracking-[0.2em] text-wine font-semibold">Set the Motion</p>
+
+            <div id="step-2-skeleton" class="w-full flex flex-col items-center space-y-8">
+                <div class="skeleton-block h-9 w-full max-w-md"></div>
+                <div class="skeleton-block h-24 w-full max-w-2xl"></div>
+                <div class="skeleton-block h-16 w-56 rounded-full"></div>
+                <p class="text-ink-soft text-sm kicker">쟁점을 분석하는 중...</p>
+            </div>
+
+            <div id="step-2-content" class="hidden w-full flex flex-col items-center space-y-8">
+                <h2 class="text-3xl font-serif font-bold text-ink text-center">이 주제로 토론을 시작할까요?</h2>
+                <input id="issue-input" type="text" class="w-full max-w-2xl p-6 bg-surface border-2 border-line rounded-2xl text-xl font-bold text-center outline-none text-ink focus:border-wine transition">
+                <button onclick="startDebate()" class="bg-ink text-surface px-12 py-5 rounded-full font-bold text-xl hover:bg-wine transition">토론 시작</button>
+            </div>
+        </div>
+
+        <div id="step-3" class="hidden h-[75vh] flex flex-col max-w-3xl mx-auto">
+            <div class="mb-5 border-b-2 border-ink pb-4 space-y-3">
+                <div class="flex justify-between items-center">
+                    <div class="stamp px-3 py-1 rounded-sm text-xs font-bold uppercase">
+                        <span id="phase-current">입론</span>
+                    </div>
+                    <span id="issue-display" class="text-ink-soft font-serif font-semibold truncate max-w-xs text-right"></span>
+                </div>
+                <div class="stage-track text-ink-soft">
+                    <span class="stage-dot">01 입론</span><span class="mx-2 text-line">—</span>
+                    <span class="stage-dot">02 반론</span><span class="mx-2 text-line">—</span>
+                    <span class="stage-dot">03 재반론</span><span class="mx-2 text-line">—</span>
+                    <span class="stage-dot">04 최종결론</span>
+                </div>
+            </div>
+            <div id="chat-box" class="flex-1 overflow-y-auto chat-scroll space-y-4 mb-6 pr-2"></div>
+            <div class="flex justify-end mb-3">
+                <button id="next-stage-btn" onclick="nextStage()" disabled
+                    class="text-xs kicker font-bold uppercase tracking-widest px-4 py-2 rounded-full border border-line text-ink-soft transition
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    enabled:hover:border-wine enabled:hover:text-wine">
+                    다음 단계<span id="next-stage-label"></span> →
+                </button>
+            </div>
+            <div class="flex gap-3">
+                <input id="user-input" type="text" onkeyup="if(event.keyCode===13){send()}" class="flex-1 p-5 bg-surface border border-line rounded-2xl outline-none text-ink focus:border-wine transition disabled:opacity-50" placeholder="의견을 입력하세요...">
+                <button id="send-btn" onclick="send()" class="bg-wine text-surface px-8 rounded-2xl font-bold hover:bg-wine-dark transition disabled:opacity-40 disabled:cursor-not-allowed">전송</button>
+            </div>
+        </div>
+        <div id="step-4" class="hidden max-w-2xl mx-auto py-16 space-y-6 text-center">
+            <p class="kicker text-xs uppercase tracking-[0.2em] text-wine font-semibold">Debate Summary</p>
+            <h2 class="text-3xl font-serif font-bold text-ink">토론이 종료되었습니다.</h2>
+            <p id="summary-issue" class="text-ink-soft font-serif text-lg"></p>
+            <p id="summary-meta" class="text-xs kicker text-ink-soft uppercase tracking-widest"></p>
+            <div class="bg-surface border border-line rounded-2xl p-8 text-left">
+                <p id="summary-body" class="text-ink-soft leading-relaxed"></p>
+            </div>
+            <div class="flex justify-center gap-3 pt-4">
+                <a href="history.html" class="bg-wine text-surface px-8 py-3 rounded-full font-bold hover:bg-wine-dark transition">히스토리에 보관하기 (준비 중)</a>
+                <button onclick="showStep(1)" class="border border-line text-ink px-8 py-3 rounded-full font-bold hover:border-wine hover:text-wine transition">새 토론 시작하기</button>
+            </div>
+        </div>
+    </main>
+
+    <div id="read-modal" onclick="handleModalOutsideClick(event)" class="hidden fixed inset-0 bg-ink/50 backdrop-blur-sm z-[60] flex items-center justify-center p-6">
+        <div class="bg-surface border-2 border-ink rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col overflow-hidden shadow-2xl">
+            <div id="read-modal-body" class="p-8 md:p-10 overflow-y-auto space-y-4">
+                <p class="kicker text-[10px] uppercase tracking-widest text-wine">기사 전문</p>
+                <h3 id="modal-title" class="text-2xl font-serif font-bold text-ink leading-snug"></h3>
+                <p id="modal-desc" class="text-ink-soft leading-relaxed whitespace-pre-line"></p>
+                <p id="modal-loading" class="hidden text-ink-soft text-sm kicker">본문을 불러오는 중...</p>
+                <p id="modal-error" class="hidden text-wine text-sm"></p>
+            </div>
+            <div class="p-6 border-t border-line flex flex-wrap justify-end gap-3 bg-panel/40">
+                <button id="modal-link-btn" onclick="openOriginalLink()" class="px-5 py-3 rounded-lg font-semibold text-ink-soft hover:text-ink border border-line transition">원문 링크 열기 ↗</button>
+                <button onclick="confirmRead()" class="bg-wine text-surface px-8 py-3 rounded-lg font-bold hover:bg-wine-dark transition">다 읽었어요 · 토론하러 가기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="auth-modal" onclick="handleAuthModalOutsideClick(event)" class="hidden fixed inset-0 bg-ink/50 backdrop-blur-sm z-[60] flex items-center justify-center p-6">
+        <div class="bg-surface border-2 border-ink rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
+            <div class="flex border-b border-line mb-6">
+                <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 pb-3 text-center font-bold text-wine border-b-2 border-wine kicker text-sm tracking-wider uppercase">로그인</button>
+                <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 pb-3 text-center font-semibold text-ink-soft border-b-2 border-transparent kicker text-sm tracking-wider uppercase">회원가입</button>
+            </div>
+            
+            <div id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-xs kicker font-bold text-ink uppercase mb-1">이메일 주소</label>
+                    <input type="email" placeholder="example@loginews.com" class="w-full p-3 bg-paper border border-line rounded-lg outline-none focus:border-wine text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs kicker font-bold text-ink uppercase mb-1">비밀번호</label>
+                    <input type="password" placeholder="••••••••" class="w-full p-3 bg-paper border border-line rounded-lg outline-none focus:border-wine text-sm">
+                </div>
+                <button onclick="closeAuthModal()" class="w-full bg-wine text-surface py-3 rounded-lg font-bold hover:bg-wine-dark transition mt-2 text-sm">데모 계정으로 입장</button>
+            </div>
+
+            <div id="form-signup" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs kicker font-bold text-ink uppercase mb-1">사용자 이름</label>
+                    <input type="text" placeholder="홍길동" class="w-full p-3 bg-paper border border-line rounded-lg outline-none focus:border-wine text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs kicker font-bold text-ink uppercase mb-1">이메일 주소</label>
+                    <input type="email" placeholder="example@loginews.com" class="w-full p-3 bg-paper border border-line rounded-lg outline-none focus:border-wine text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs kicker font-bold text-ink uppercase mb-1">비밀번호 설정</label>
+                    <input type="password" placeholder="8자리 이상 입력" class="w-full p-3 bg-paper border border-line rounded-lg outline-none focus:border-wine text-sm">
+                </div>
+                <button onclick="closeAuthModal()" class="w-full bg-ink text-surface py-3 rounded-lg font-bold hover:bg-wine transition mt-2 text-sm">가입 완료하기 (프로토타입)</button>
+            </div>
+            <p class="text-[11px] text-center text-ink-soft/70 mt-4 leading-relaxed">이 모달은 발표 평가용 UI 프로토타입이며 실 데이터베이스 연동은 생략되어 작동합니다.</p>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = "http://127.0.0.1:8000";
+        const PHASES = ["입론", "반론", "재반론", "최종결론"];
+        let state = { phase: PHASES[0], issue: "", history: [] };
+        let phaseIndex = 0;
+        let awaitingReply = false;
+        let userHasSpokenThisPhase = false;
+        let currentNewsItems = [];
+        let pendingArticleContent = "";
+        let pendingArticleTitle = "";
+        let pendingArticleLink = "";
+
+        window.onload = () => {
+            setTimeout(() => { fetchNews("오늘의 주요 뉴스"); }, 1000);
+        };
+
+        function toggleSlideMenu() {
+            const sidebar = document.getElementById('slide-sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        function openAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+        function handleAuthModalOutsideClick(e) {
+            if (e.target === document.getElementById('auth-modal')) {
+                closeAuthModal();
+            }
+        }
+        function switchAuthTab(type) {
+            const tabLogin = document.getElementById('tab-login');
+            const tabSignup = document.getElementById('tab-signup');
+            const formLogin = document.getElementById('form-login');
+            const formSignup = document.getElementById('form-signup');
+
+            if (type === 'login') {
+                tabLogin.className = "flex-1 pb-3 text-center font-bold text-wine border-b-2 border-wine kicker text-sm tracking-wider uppercase";
+                tabSignup.className = "flex-1 pb-3 text-center font-semibold text-ink-soft border-b-2 border-transparent kicker text-sm tracking-wider uppercase";
+                formLogin.classList.remove('hidden');
+                formSignup.classList.add('hidden');
+            } else {
+                tabLogin.className = "flex-1 pb-3 text-center font-semibold text-ink-soft border-b-2 border-transparent kicker text-sm tracking-wider uppercase";
+                tabSignup.className = "flex-1 pb-3 text-center font-bold text-wine border-b-2 border-wine kicker text-sm tracking-wider uppercase";
+                formLogin.classList.add('hidden');
+                formSignup.classList.remove('hidden');
+            }
+        }
+
+        async function fetchNews(customQuery) {
+            const query = customQuery || document.getElementById('news-search').value || "속보";
+            setStatus("Searching...");
+            try {
+                const res = await fetch(`${BASE_URL}/api/search-news?query=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                renderNews(data.items);
+            } catch (err) { console.error(err); }
+            finally { setStatus("Ready"); }
+        }
+
+        function openArticle(index) {
+            const item = currentNewsItems[index];
+            if(!item) return;
+            pendingArticleTitle = item.title;
+            pendingArticleContent = `${item.title}\n\n${item.description}`;
+            pendingArticleLink = item.link;
+            document.getElementById('modal-title').innerText = item.title;
+            document.getElementById('modal-desc').innerText = item.description;
+            document.getElementById('modal-loading').classList.add('hidden');
+            document.getElementById('modal-error').classList.add('hidden');
+            document.getElementById('modal-link-btn').classList.toggle('hidden', !pendingArticleLink);
+            document.getElementById('read-modal-body').scrollTop = 0;
+            document.getElementById('read-modal').classList.remove('hidden');
+        }
+
+        function closeReadModal() {
+            document.getElementById('read-modal').classList.add('hidden');
+            pendingArticleContent = "";
+            pendingArticleLink = "";
+        }
+
+        function handleModalOutsideClick(e) {
+            if (!e.target.closest('.bg-surface')) {
+                closeReadModal();
+            }
+        }
+
+        function openOriginalLink() {
+            if (pendingArticleLink) window.open(pendingArticleLink, '_blank', 'noopener');
+        }
+
+        function confirmRead() {
+            const titleOnly = pendingArticleTitle;
+            document.getElementById('read-modal').classList.add('hidden');
+            if(titleOnly) selectNews(titleOnly);
+        }
+
+        async function selectNews(content) {
+            showStep(2);
+            document.getElementById('step-2-skeleton').classList.remove('hidden');
+            document.getElementById('step-2-content').classList.add('hidden');
+            setStatus("Analyzing...");
+            try {
+                const res = await fetch(`${BASE_URL}/api/analyze-news`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ content })
+                });
+                const data = await res.json();
+                document.getElementById('issue-input').value = data.issue1;
+            } catch (err) {
+                console.error(err);
+                document.getElementById('issue-input').value = content;
+            } finally {
+                document.getElementById('step-2-skeleton').classList.add('hidden');
+                document.getElementById('step-2-content').classList.remove('hidden');
+                setStatus("Ready");
+            }
+        }
+
+        function startDebate() {
+            state.issue = document.getElementById('issue-input').value;
+            state.history = [];
+            phaseIndex = 0;
+            state.phase = PHASES[phaseIndex];
+            userHasSpokenThisPhase = false;
+            awaitingReply = false;
+            document.getElementById('issue-display').innerText = state.issue;
+            showStep(3);
+            document.getElementById('chat-box').innerHTML = "";
+            updateStageUI();
+            addMessage("AI", `"${state.issue}" 주제에 대한 토론을 시작합니다. 입론을 제시해 주세요.`);
+        }
+
+        function nextStage() {
+    if (awaitingReply || !userHasSpokenThisPhase) return;
+    if (phaseIndex >= PHASES.length - 1) {
+        finishDebate();
+        return;
+    }
+    phaseIndex += 1;
+    state.phase = PHASES[phaseIndex];
+    userHasSpokenThisPhase = false;
+    updateStageUI();
+    addMessage("AI", `이제 '${state.phase}' 단계입니다. ${state.phase}을(를) 제시해 주세요.`);
+}
+
+        function finishDebate() {
+            const turnCount = state.history.filter(m => m.role === 'user').length;
+            document.getElementById('summary-issue').innerText = state.issue;
+            document.getElementById('summary-meta').innerText = `${PHASES.length}단계 · 총 ${turnCount}회 발언`;
+            document.getElementById('summary-body').innerText =
+                "이 토론의 핵심 쟁점과 단계별 주장을 정리한 요약입니다.";
+            showStep(4);
+}
+
+        function updateStageUI() {
+            document.getElementById('phase-current').innerText = state.phase;
+            document.querySelectorAll('.stage-dot').forEach((el, i) => {
+                el.classList.toggle('text-wine', i === phaseIndex);
+                el.classList.toggle('font-bold', i === phaseIndex);
+                el.classList.toggle('text-ink-soft', i !== phaseIndex);
+            });
+            const label = document.getElementById('next-stage-label');
+            if (phaseIndex < PHASES.length - 1) {
+                label.innerText = ` (${PHASES[phaseIndex + 1]})`;
+            } else {
+                label.innerText = " (마지막 단계)";
+            }
+            refreshControls();
+        }
+
+        function refreshControls() {
+            const input = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const nextBtn = document.getElementById('next-stage-btn');
+            input.disabled = awaitingReply;
+            sendBtn.disabled = awaitingReply;
+            nextBtn.disabled = awaitingReply || !userHasSpokenThisPhase;
+            if (phaseIndex < PHASES.length - 1) {
+                nextBtn.innerHTML = `다음 단계 (${PHASES[phaseIndex + 1]}) →`;
+            } else {
+                nextBtn.innerHTML = `토론 마치기 · 요약 보기 →`;
+            }
+        }
+        function addMessage(sender, text) {
+            const box = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = `flex ${sender === 'User' ? 'justify-end' : 'justify-start'}`;
+            div.innerHTML = `<div class="max-w-[85%] p-5 rounded-2xl ${sender === 'User' ? 'bg-wine text-surface shadow-lg' : 'bg-surface border border-line text-ink shadow-sm'}">
+                <p class="text-[10px] kicker font-bold uppercase opacity-60 mb-1">${sender === 'User' ? 'YOU' : 'AI · 상대 토론자'}</p>
+                <p class="leading-relaxed">${text}</p>
+            </div>`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function showStep(n) {
+            [1, 2, 3, 4].forEach(i => {
+                const el = document.getElementById(`step-${i}`);
+                if(el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(`step-${n}`);
+            if(target) target.classList.remove('hidden');
+}
+
+        function setStatus(txt) { document.getElementById('status').innerText = txt; }
+        
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&quot;/g, '"')
+                .replace(/&#039;/g, "'")
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/<\/?[^>]+(>|$)/g, "");
+        }
+
+        function renderNews(items) {
+            const container = document.getElementById('news-results');
+            if(!items) return;
+            
+            currentNewsItems = items.map(item => ({
+                title: escapeHtml(item.title),
+                description: escapeHtml(item.description),
+                link: item.originallink || item.link || ""
+            }));
+
+            container.innerHTML = currentNewsItems.map((item, i) => `
+                <div onclick="openArticle(${i})" style="animation-delay: ${0.15 + i * 0.08}s" class="slide-up-item article-card p-8 rounded-lg cursor-pointer group">
+                    <p class="kicker text-[10px] uppercase tracking-widest text-wine mb-3">Article ${String(i+1).padStart(2,'0')}</p>
+                    <h3 class="text-xl font-serif font-bold mb-3 text-ink group-hover:text-wine transition line-clamp-2">${item.title}</h3>
+                    <p class="text-ink-soft text-sm leading-relaxed line-clamp-3">${item.description}</p>
+                </div>
+            `).join('');
+        }
+
+        async function send() {
+            if (awaitingReply) return;
+            const input = document.getElementById('user-input');
+            const msg = input.value.trim();
+            if(!msg) return;
+            
+            addMessage("User", msg);
+            state.history.push({ role: "user", content: msg });
+            input.value = "";
+            awaitingReply = true;
+            setStatus("Thinking...");
+            refreshControls();
+            
+            try {
+                const res = await fetch(`${BASE_URL}/api/debate-step`, {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        phase: state.phase,
+                        issue: state.issue,
+                        history: state.history
+                    })
+                });
+                
+                if (!res.ok) throw new Error(`debate-step failed: ${res.status}`);
+                const data = await res.json();
+                const aiReply = data.reply || data.response || "대답을 유추할 수 없습니다.";
+                
+                addMessage("AI", aiReply);
+                state.history.push({ role: "assistant", content: aiReply });
+                userHasSpokenThisPhase = true;
+            } catch (err) {
+                console.error("API 통신 에러 상세:", err);
+                addMessage("AI", "서버와 연결할 수 없거나 응답을 가져오지 못했습니다. 백엔드(FastAPI 등) 서버가 켜져 있는지 확인해 주세요.");
+            } finally {
+                awaitingReply = false;
+                setStatus("Ready");
+                refreshControls();
+            }
+        }
+    </script>
+</body>
+</html>

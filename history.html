@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko" class="overflow-y-scroll">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>LogiNews | 뉴스 아카이브</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paper: '#F8F5EC',
+                        surface: '#FDFBF5',
+                        panel: '#EFE7D3',
+                        ink: '#2A241C',
+                        'ink-soft': '#8F836C',
+                        wine: '#7A2B2B',
+                        'wine-dark': '#4E1C1C',
+                        line: '#E1D5B6',
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif KR"', 'serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        sans: ['Pretendard', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #F8F5EC;
+            color: #2A241C;
+            -webkit-font-smoothing: antialiased;
+            background-image:
+                radial-gradient(circle at 15% 0%, rgba(122,43,43,0.04), transparent 45%),
+                radial-gradient(circle at 100% 100%, rgba(122,43,43,0.03), transparent 40%),
+                repeating-linear-gradient(0deg, rgba(42,36,28,0.015) 0px, rgba(42,36,28,0.015) 1px, transparent 1px, transparent 3px);
+        }
+        .masthead-rule {
+            border-top: 3px solid #2A241C;
+            border-bottom: 1px solid #2A241C;
+            height: 5px;
+        }
+        .history-card {
+            background: #FDFBF5;
+            border: 1px solid #E1D5B6;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+        .history-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: #2A241C;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        .history-card:hover {
+            border-color: #2A241C;
+            transform: translateY(-3px);
+            box-shadow: 0 14px 28px rgba(42,36,28,0.08);
+        }
+        .history-card:hover::before { transform: scaleX(1); }
+
+        .stamp {
+            border: 2px double #7A2B2B;
+            color: #7A2B2B;
+            font-family: 'JetBrains Mono', monospace;
+            transform: rotate(-1deg);
+        }
+        .kicker {
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.12em;
+        }
+        
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-up-item {
+            opacity: 0;
+            animation: slideUpFade 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        .right-slide-menu {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100%;
+            background: #FDFBF5;
+            border-left: 2px solid #2A241C;
+            box-shadow: -4px 0 24px rgba(42,36,28,0.15);
+            z-index: 100;
+            transition: right 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .right-slide-menu.open {
+            right: 0;
+        }
+        #report-modal-body::-webkit-scrollbar { width: 5px; }
+        #report-modal-body::-webkit-scrollbar-thumb { background: #E1D5B6; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- 우측 상단 클릭형 슬라이드 바 컴포넌트 -->
+    <div id="slide-sidebar" class="right-slide-menu p-8 flex flex-col justify-between">
+        <div>
+            <div class="flex justify-between items-center mb-8 pb-4 border-b border-line">
+                <div class="text-lg font-serif font-black text-ink">LOGI<span class="text-wine">MENU</span></div>
+                <button onclick="toggleSlideMenu()" class="text-xl text-ink-soft hover:text-wine font-bold transition">✕</button>
+            </div>
+            <nav class="flex flex-col gap-5">
+                <a href="index.html" class="py-2 font-bold font-serif text-ink hover:text-wine text-lg transition block">🏠 | Main</a>
+                <a href="/" class="py-2 font-bold font-serif text-ink hover:text-wine text-lg transition block">🕰️ | History</a>
+                <a href="account.html" class="py-2 font-bold font-serif text-ink hover:text-wine text-lg transition block">👤 | Account</a>
+            </nav>
+        </div>
+        <div class="text-[11px] font-mono text-ink-soft/60">
+            &copy; 2026 LogiNews. All rights reserved.
+        </div>
+    </div>
+
+    <!-- 네비게이션 바 -->
+    <nav class="border-b-2 border-ink py-5 px-6 md:px-10 flex justify-between items-center bg-paper/95 backdrop-blur-md sticky top-0 z-50">
+        <div class="flex items-center gap-6">
+            <a href="/" class="flex items-baseline gap-3 cursor-pointer group">
+                <div class="text-3xl font-black tracking-tight text-ink font-serif">LOGI<span class="text-wine">NEWS</span></div>
+            </a>
+            <span class="text-xs kicker font-bold text-ink-soft uppercase tracking-widest border-l border-line pl-4 hidden sm:inline">Logic Architecture Archive</span>
+        </div>
+        <div class="flex items-center gap-5">
+            <button onclick="openAuthModal()" class="hidden sm:inline text-xs font-bold kicker border border-line px-3 py-1.5 rounded-md text-ink hover:border-wine hover:text-wine transition">Login / Sign Up</button>
+            <button onclick="toggleSlideMenu()" class="text-2xl font-serif leading-none tracking-widest text-ink hover:text-wine transition focus:outline-none select-none px-2 py-1">···</button>
+        </div>
+    </nav>
+    <div class="masthead-rule"></div>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="max-w-[80rem] mx-auto p-6 md:p-10 space-y-10">
+        <div class="slide-up-item space-y-3">
+            <p class="kicker text-xs uppercase tracking-[0.2em] text-wine font-semibold">My Statement Archive</p>
+            <h2 class="text-3xl md:text-4xl font-serif font-bold text-ink tracking-tight">나의 뉴스 분석 아카이브</h2>
+            <p class="text-ink-soft text-sm">사회를 바라보는 당신의 주장이 단계별로 얼마나 견고하게 전개되었는지 핵심 구성을 확인하세요.</p>
+        </div>
+
+        <!-- 아카이브 카드 그리드 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+            
+            <!-- 카드 1 -->
+            <div onclick="openReport(0)" class="slide-up-item history-card p-8 rounded-xl cursor-pointer flex flex-col justify-between" style="animation-delay: 0.1s">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-xs kicker text-ink-soft">
+                        <span>2026.07.08</span>
+                        <span class="text-wine font-bold">● 분석 완료</span>
+                    </div>
+                    <h3 class="text-xl font-serif font-bold text-ink leading-snug hover:text-wine transition">인공지능 저작권 규제안 도입 여부</h3>
+                    <p class="text-ink-soft text-sm leading-relaxed line-clamp-2">"창작자 권리 보호" 관점에서 시작되어 인공지능이 제시한 반론을 극복하고 절충적 가이드라인까지 정립한 논리 맵입니다.</p>
+                </div>
+                <div class="mt-6 pt-4 border-t border-line/60 flex justify-between items-center">
+                    <span class="text-xs font-mono text-ink-soft/80">ID: MYLOGIC-20260708</span>
+                    <span class="text-xs font-bold kicker text-wine">나의 주장 요약보기 →</span>
+                </div>
+            </div>
+
+            <!-- 카드 2 -->
+            <div onclick="openReport(1)" class="slide-up-item history-card p-8 rounded-xl cursor-pointer flex flex-col justify-between" style="animation-delay: 0.18s">
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-xs kicker text-ink-soft">
+                        <span>2026.07.05</span>
+                        <span class="text-ink-soft font-bold">○ 미완성 기록</span>
+                    </div>
+                    <h3 class="text-xl font-serif font-bold text-ink leading-snug hover:text-wine transition">수도권 주택 공급 특별법 찬반</h3>
+                    <p class="text-ink-soft text-sm leading-relaxed line-clamp-2">"그린벨트 보존"과 "단기 공급 진작" 사이에서 본인의 가치관을 입론과 반론 수준까지 설계해 보았던 전개 로직입니다.</p>
+                </div>
+                <div class="mt-6 pt-4 border-t border-line/60 flex justify-between items-center">
+                    <span class="text-xs font-mono text-ink-soft/80">ID: MYLOGIC-20260705</span>
+                    <span class="text-xs font-bold kicker text-wine">나의 주장 요약보기 →</span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- [수정] 프로그램 목적에 전적으로 맞춘 주장 요약 상세 모달 -->
+    <div id="report-modal" onclick="handleModalOutsideClick(event)" class="hidden fixed inset-0 bg-ink/50 backdrop-blur-sm z-[60] flex items-center justify-center p-6">
+        <div class="bg-surface border-2 border-ink rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div id="report-modal-body" class="p-8 md:p-10 overflow-y-auto space-y-6">
+                <div class="flex justify-between items-start">
+                    <div class="space-y-1">
+                        <p id="modal-date" class="kicker text-xs text-wine font-semibold"></p>
+                        <h3 id="modal-title" class="text-2xl font-serif font-bold text-ink leading-snug"></h3>
+                    </div>
+                    <div class="stamp shrink-0 px-3 py-1 font-bold text-xs uppercase hidden sm:block">My Statement</div>
+                </div>
+                
+                <hr class="border-ink">
+
+                <!-- 1. 입론 -->
+                <div class="space-y-2">
+                    <h4 class="font-serif font-bold text-base text-ink flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-wine"></span> 01. 나의 입론 (Initial Statement)
+                    </h4>
+                    <div class="p-4 bg-panel/30 border border-line rounded-xl text-sm text-ink leading-relaxed" id="modal-intro"></div>
+                </div>
+
+                <!-- 2. 반론 -->
+                <div class="space-y-2">
+                    <h4 class="font-serif font-bold text-base text-ink flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-wine"></span> 02. 나의 반론 (Counter-Argument)
+                    </h4>
+                    <div class="p-4 bg-panel/30 border border-line rounded-xl text-sm text-ink leading-relaxed" id="modal-counter"></div>
+                </div>
+
+                <!-- 3. AI 반대측 반론 (재반론 위에 배치) -->
+                <div class="space-y-2">
+                    <h4 class="font-serif font-bold text-base text-wine-dark flex items-center gap-2">
+                        <span class="w-4 h-4 text-center leading-4 font-mono text-[10px] bg-wine text-surface rounded">AI</span> 03. 인공지능이 제시한 반대측 반론 (AI Objection)
+                    </h4>
+                    <div class="p-4 bg-wine/[0.03] border border-wine/30 rounded-xl text-sm text-ink-soft italic leading-relaxed" id="modal-ai-objection"></div>
+                </div>
+
+                <!-- 4. 재반론 -->
+                <div class="space-y-2">
+                    <h4 class="font-serif font-bold text-base text-ink flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-wine"></span> 04. 나의 재반론 (Rebuttal)
+                    </h4>
+                    <div class="p-4 bg-panel/30 border border-line rounded-xl text-sm text-ink leading-relaxed" id="modal-rebuttal"></div>
+                </div>
+
+                <!-- 5. 결론 -->
+                <div class="space-y-2">
+                    <h4 class="font-serif font-bold text-base text-ink flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-ink"></span> 05. 나의 최종 결론 (Conclusion)
+                    </h4>
+                    <div class="p-4 bg-ink/5 border border-ink/20 rounded-xl text-sm font-semibold text-ink leading-relaxed" id="modal-conclusion"></div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-line flex justify-end bg-panel/40">
+                <button onclick="closeReportModal()" class="bg-ink text-surface px-8 py-3 rounded-lg font-bold hover:bg-wine transition">확인 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 계정 모달 프로토타입 -->
+    <div id="auth-modal" onclick="handleAuthModalOutsideClick(event)" class="hidden fixed inset-0 bg-ink/50 backdrop-blur-sm z-[60] flex items-center justify-center p-6">
+        <div class="bg-surface border-2 border-ink rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
+            <div class="flex border-b border-line mb-6">
+                <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 pb-3 text-center font-bold text-wine border-b-2 border-wine kicker text-sm tracking-wider uppercase">로그인</button>
+                <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 pb-3 text-center font-semibold text-ink-soft border-b-2 border-transparent kicker text-sm tracking-wider uppercase">회원가입</button>
+            </div>
+            <div id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-xs kicker font-bold text-ink uppercase mb-1">이메일 주소</label>
+                    <input type="email" placeholder="example@loginews.com" class="w-full p-3 bg-paper border border-line rounded-lg outline-none focus:border-wine text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs kicker font-bold text-ink uppercase mb-1">비밀번호</label>
+                    <input type="password" placeholder="••••••••" class="w-full p-3 bg-paper border border-line rounded-lg outline-none focus:border-wine text-sm">
+                </div>
+                <button onclick="closeAuthModal()" class="w-full bg-wine text-surface py-3 rounded-lg font-bold hover:bg-wine-dark transition mt-2 text-sm">데모 계정으로 입장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // [수정] 사용자의 입론/반론/AI반론/재반론/결론 데이터를 담은 구조화된 Mock 데이터
+        const mockReports = [
+            {
+                title: "인공지능 저작권 규제안 도입 여부",
+                date: "2026.07.08 STATEMENT MAP",
+                intro: "인공지능 학습을 위해 데이터 크롤링을 무단으로 수행하는 것은 원저작자의 지식재산권을 직접적으로 침해하는 행위입니다. 따라서 강력한 사전 규제안이 마련되어야 창작 생태계가 붕괴하지 않습니다.",
+                counter: "기업들이 기술 발전을 이유로 무상 수집을 당연시하는 논리는 대기업의 이익 독점일 뿐이며, 권리 보호가 선행되지 않는 기술 혁신은 사상누각과 같습니다.",
+                aiObjection: "저작권을 과도하게 묶을 경우 영세한 국내 AI 스타트업들의 인프라 구축 비용이 폭증하여, 규제가 없는 미국·중국 빅테크 기업들과의 글로벌 기술 격차가 회복 불가능한 수준으로 벌어질 수 있습니다.",
+                rebuttal: "글로벌 경쟁력도 중요하지만 국가가 자국 창작자들의 권리를 희생양 삼아 발전하는 것은 옳지 않습니다. 무조건적인 개방이 아닌, 국가적 차원의 '공정 보상 기금 체계'나 '신탁 라이선스' 제도를 구축하여 인프라 비용 부담을 연착륙시켜야 합니다.",
+                conclusion: "저작권 규제안은 전면 차단이 아닌 '상생형 보상 조율' 형태로 가야 합니다. 기술의 가치만큼 인간 창작물의 가치를 법적으로 명시하되, 라이선스 절차를 일원화하여 스타트업의 접근성도 함께 확보해 주는 조화가 최종적인 해결책입니다."
+            },
+            {
+                title: "수도권 주택 공급 특별법 찬반",
+                date: "2026.07.05 STATEMENT MAP",
+                intro: "단기적인 주택 가격 안정을 목적으로 수도권 개발제한구역(그린벨트)을 해제하여 공급을 늘리는 정책은 미래 세대의 환경 자산을 현세대의 부동산 과열 방지용으로 낭비하는 임시방편적 접근입니다.",
+                counter: "도심 내 재개발이나 유휴 부지 활용 등 그린벨트를 훼손하지 않는 대안적 메커니즘이 존재함에도 가장 손쉬운 녹지 파괴 방식을 택하는 것은 정책적 직무유기입니다.",
+                aiObjection: "재개발·재건축은 조합 간의 이권 갈등 및 법적 분쟁으로 인해 실제 입주까지 평균 10년 이상이 소요됩니다. 당장 극심한 주거 비용 고통을 겪고 있는 무주택 서민들을 위해 즉각적인 대규모 택지 공급이 가능한 그린벨트 해제는 불가피한 카드일 수 있습니다.",
+                rebuttal: "미완성 단계 기록 (이후 논리는 아직 정립되지 않았습니다.)",
+                conclusion: "미완성 단계 기록 (이후 논리는 아직 정립되지 않았습니다.)"
+            }
+        ];
+
+        function toggleSlideMenu() {
+            document.getElementById('slide-sidebar').classList.toggle('open');
+        }
+
+        // [수정] 모달 내부 데이터를 기획 방향에 맞는 ID로 매핑하여 렌더링
+        function openReport(index) {
+            const report = mockReports[index];
+            if (!report) return;
+
+            document.getElementById('modal-title').innerText = report.title;
+            document.getElementById('modal-date').innerText = report.date;
+            document.getElementById('modal-intro').innerText = report.intro;
+            document.getElementById('modal-counter').innerText = report.counter;
+            document.getElementById('modal-ai-objection').innerText = report.aiObjection;
+            document.getElementById('modal-rebuttal').innerText = report.rebuttal;
+            document.getElementById('modal-conclusion').innerText = report.conclusion;
+
+            document.getElementById('report-modal-body').scrollTop = 0;
+            document.getElementById('report-modal').classList.remove('hidden');
+        }
+
+        function closeReportModal() {
+            document.getElementById('report-modal').classList.add('hidden');
+        }
+
+        function handleModalOutsideClick(e) {
+            if (e.target === document.getElementById('report-modal')) {
+                closeReportModal();
+            }
+        }
+
+        function openAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+        function handleAuthModalOutsideClick(e) {
+            if (e.target === document.getElementById('auth-modal')) {
+                closeAuthModal();
+            }
+        }
+    </script>
+</body>
+</html>
